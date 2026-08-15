@@ -1,5 +1,3 @@
-# src/ingest/pdf_parser.py
-
 import re
 import subprocess
 from datetime import datetime

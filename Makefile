@@ -1,10 +1,12 @@
+PYTHON ?= $(shell if [ -f .venv/bin/python ]; then echo .venv/bin/python; else echo python3; fi)
+
 .PHONY: download ingest sprint0
 
 download:
-	python -m src.ingest.download_wer
+	$(PYTHON) -m src.ingest.download_wer
 
 ingest:
-	python -m scripts.sprint1_ingest_bronze
+	$(PYTHON) -m scripts.sprint1_ingest_bronze
 
 sprint0:
-	python -m scripts.sprint0_walking_skeleton
+	$(PYTHON) -m scripts.sprint0_walking_skeleton

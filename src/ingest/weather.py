@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-from duckdb.experimental.spark.sql import column
 
 from src.config import DISTRICT_COORDS
 

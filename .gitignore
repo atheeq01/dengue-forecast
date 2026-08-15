@@ -1,17 +1,42 @@
-.venv/
-
-__pycache__/
 
 *.pyc
-
-.ipynb_checkpoints/
-
 data/
-
 mlruns/
-
 .env
 
 .DS_Store
 
 *.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data artifacts
+data/raw/wer_pdfs/*.pdf
+data/raw/weather/*
+data/bronze/*
+data/silver/*
+data/gold/*
+!data/raw/wer_pdfs/.gitkeep
+!data/raw/weather/.gitkeep
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
+
+# Testing & Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+/.venv-windows/
