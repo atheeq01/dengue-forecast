@@ -10,7 +10,7 @@ REQUIRED_COLUMNS = {
     "year",
     "week",
     "district",
-    "case"
+    "cases",
 }
 
 
@@ -125,6 +125,12 @@ def clean_dengue_panel(df:pd.DataFrame) -> pd.DataFrame:
       """
     df = df.copy()
     df = normalize_columns(df)
+
+    if "cases" not in df.columns and "dengue_fever_this_week" in df.columns:
+        df["cases"] = df["dengue_fever_this_week"]
+
+    if "week" not in df.columns and "epi_week" in df.columns:
+        df["week"] = df["epi_week"]
     
     validate_required_columns(df)
     
@@ -139,7 +145,7 @@ def clean_dengue_panel(df:pd.DataFrame) -> pd.DataFrame:
     df["year"]= pd.to_numeric(df["year"], errors="coerce")
     df["week"] = pd.to_numeric(df["week"], errors="coerce")
     # clean integer
-    df["case"] = df["cases"].apply(clean_integer)
+    df["cases"] = df["cases"].apply(clean_integer)
 
     # cast
     df["year"] = df["year"].astype(int)
@@ -172,7 +178,7 @@ def clean_dengue_panel(df:pd.DataFrame) -> pd.DataFrame:
         )
     )
     # create a real weekly date.
-    df["week_start"] = pd.to_datetime(
+    iso_week_start = pd.to_datetime(
         df["year"].astype(str)
         + "-W"
         + df["week"].astype(str)
@@ -180,6 +186,51 @@ def clean_dengue_panel(df:pd.DataFrame) -> pd.DataFrame:
         format="%G-W%V-%u",
         errors="coerce",
     )
+
+    if "week_ending" in df.columns:
+        week_ending = pd.to_datetime(
+            df["week_ending"],
+            errors="coerce",
+        )
+        week_start_from_ending = (
+            week_ending
+            - pd.to_timedelta(
+                week_ending.dt.weekday,
+                unit="D",
+            )
+        )
+        df["week_start"] = week_start_from_ending.fillna(
+            iso_week_start
+        )
+    else:
+        df["week_start"] = iso_week_start
+
+    df = df.dropna(
+        subset=[
+            "week_start",
+        ]
+    )
+
+    df = (
+        df
+        .sort_values(
+            [
+                "week_start",
+                "district",
+            ]
+        )
+        .drop_duplicates(
+            subset=[
+                "district",
+                "week_start",
+            ],
+            keep="last",
+        )
+    )
+
+    iso_calendar = df["week_start"].dt.isocalendar()
+    df["year"] = iso_calendar.year.astype(int)
+    df["week"] = iso_calendar.week.astype(int)
 
     df = df.sort_values(
         [
@@ -227,12 +278,9 @@ def create_complete_panel(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
 
-    complete["week"] = (
-        complete["week_start"]
-        .dt.isocalendar()
-        .week
-        .astype(int)
-    )
+    iso_calendar = complete["week_start"].dt.isocalendar()
+    complete["year"] = iso_calendar.year.astype(int)
+    complete["week"] = iso_calendar.week.astype(int)
 
     # IMPORTANT:
     # dont fill missing cases with zero.

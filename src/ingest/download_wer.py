@@ -6,6 +6,19 @@ from src.config import RAW_PDF_DIR
 
 LISTING_URL = "https://www.epid.gov.lk/weekly-epidemiological-report"
 
+REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/126.0 Safari/537.36"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "application/pdf,*/*;q=0.8"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
 PDF_LINK_PATTERN = re.compile(
     r'href="(https://www\.epid\.gov\.lk/storage/post/pdfs/[^"]+\.pdf)"'
 )
@@ -42,34 +55,77 @@ def year_week_from_url(url: str) -> tuple[int, int] | None:
         return None
     return year, week
 
-def download_pdf(url:str,dest_path:Path) -> None:
+def make_session() -> requests.Session:
+    session = requests.Session()
+    session.headers.update(
+        REQUEST_HEADERS
+    )
+    return session
+
+
+def download_pdf(
+    url:str,
+    dest_path:Path,
+    session: requests.Session | None = None,
+) -> bool:
     if dest_path.exists():
-        return
-    resp = requests.get(url,timeout=30)
+        return False
+    if session is None:
+        session = make_session()
+    resp = session.get(url,timeout=30)
     resp.raise_for_status()
     dest_path.write_bytes(resp.content)
-    return
+    return True
 
-def download_all_wer_pdfs():
+def download_all_wer_pdfs() -> dict[str, int]:
     RAW_PDF_DIR.mkdir(parents=True, exist_ok=True)
-    listing= requests.get(LISTING_URL,timeout=30)
+    session = make_session()
+    listing= session.get(LISTING_URL,timeout=30)
     listing.raise_for_status()
 
     links = find_pdf_links(listing.text)
     print(f"Found {len(links)} PDF links on the listing page")
 
+    counts = {
+        "found": len(links),
+        "downloaded": 0,
+        "existing": 0,
+        "skipped": 0,
+        "errors": 0,
+    }
+
     for url in links:
         parsed = year_week_from_url(url)
         if parsed is None:
+            counts["skipped"] += 1
             print(f"[skip] Could not confidently date: {url}")
             continue
         year, week = parsed
         dest_path = RAW_PDF_DIR / f"wer_{year}_w{week:02d}.pdf"
         try:
-            download_pdf(url, dest_path)
-            print(f"[success] '{dest_path}' was downloaded")
+            downloaded = download_pdf(
+                url,
+                dest_path,
+                session=session,
+            )
+            if downloaded:
+                counts["downloaded"] += 1
+                print(f"[downloaded] {dest_path}")
+            else:
+                counts["existing"] += 1
         except requests.RequestException as e:
+            counts["errors"] += 1
             print(f"[error] Failed to download {url}: {e}")
+
+    print(
+        "[WER download] "
+        f"downloaded={counts['downloaded']:,}, "
+        f"existing={counts['existing']:,}, "
+        f"skipped={counts['skipped']:,}, "
+        f"errors={counts['errors']:,}"
+    )
+
+    return counts
 
 
 if __name__ == "__main__":
