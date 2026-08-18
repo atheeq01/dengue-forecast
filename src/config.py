@@ -67,8 +67,8 @@ CANONICAL_RDHS = [
 
     "Batticaloa",
     "Ampara",
-    "Kalmunai",
     "Trincomalee",
+    "Kalmunai",
 
     "Kurunegala",
     "Puttalam",
@@ -235,7 +235,24 @@ DISTRICT_COORDS: dict[str, dict[str, float]] = {
 
 TABLE_SCHEMAS: dict[int, dict[str, list[str]]] = {
 
-    # Early reports
+    # 2007 - 2008 reports (8 diseases + returns %)
+    17: {
+        "diseases": [
+            "dengue_fever",
+            "dysentery",
+            "encephalitis",
+            "enteric_fever",
+            "food_poisoning",
+            "leptospirosis",
+            "typhus",
+            "viral_hepatitis",
+        ],
+        "trailing_fields": [
+            "returns_pct",
+        ],
+    },
+
+    # Early reports (9 diseases + returns %)
     19: {
         "diseases": [
             "dengue_fever",
@@ -253,7 +270,7 @@ TABLE_SCHEMAS: dict[int, dict[str, list[str]]] = {
         ],
     },
 
-    # Variant with reporting fields
+    # Variant with reporting fields (9 diseases + timeliness/completeness %)
     20: {
         "diseases": [
             "dengue_fever",
@@ -271,7 +288,49 @@ TABLE_SCHEMAS: dict[int, dict[str, list[str]]] = {
             "completeness_pct",
         ],
     },
-
+    # 2011 - 2023 reports (12 diseases + timeliness/completeness %)
+    26: {
+        "diseases": [
+            "dengue_fever",
+            "dysentery",
+            "encephalitis",
+            "enteric_fever",
+            "food_poisoning",
+            "leptospirosis",
+            "typhus",
+            "viral_hepatitis",
+            "human_rabies",
+            "chickenpox",
+            "meningitis",
+            "leishmaniasis",
+        ],
+        "trailing_fields": [
+            "timeliness_pct",
+            "completeness_pct",
+        ],
+    },
+    # 2024 - 2025 reports (13 diseases + timeliness/completeness %)
+    28: {
+        "diseases": [
+            "dengue_fever",
+            "dysentery",
+            "encephalitis",
+            "enteric_fever",
+            "food_poisoning",
+            "leptospirosis",
+            "typhus",
+            "viral_hepatitis",
+            "human_rabies",
+            "chickenpox",
+            "meningitis",
+            "leishmaniasis",
+            "tuberculosis",
+        ],
+        "trailing_fields": [
+            "timeliness_pct",
+            "completeness_pct",
+        ],
+    },
     # Mid-era reports
     29: {
         "diseases": [
