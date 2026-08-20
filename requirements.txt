@@ -3,6 +3,11 @@ numpy
 matplotlib
 requests
 xgboost
+lightgbm
 scikit-learn
 pyarrow
 python-dateutil
+joblib
+pdf2image
+pytesseract
+opencv-python

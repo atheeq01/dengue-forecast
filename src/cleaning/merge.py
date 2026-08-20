@@ -11,14 +11,10 @@ def merge_dengue_weather(
     dengue = dengue.copy()
     weather = weather.copy()
 
-    keys = [
-        "district",
-        "week_start",
-    ]
-
     weather_columns = [
         "district",
-        "week_start",
+        "year",
+        "week",
         "rainfall_mm",
         "temperature_mean",
         "temperature_max",
@@ -27,6 +23,8 @@ def merge_dengue_weather(
         "wind_speed_mean",
         "dtr_mean",
         "weather_days",
+        "weather_complete",
+        "weather_missing_days",
     ]
 
     weather = weather[
@@ -36,6 +34,17 @@ def merge_dengue_weather(
             if column in weather.columns
         ]
     ]
+
+    keys = [
+        "district",
+        "year",
+        "week",
+    ]
+
+    weather = weather.drop_duplicates(
+        subset=keys,
+        keep="last",
+    )
 
     merged = dengue.merge(
         weather,
@@ -47,6 +56,7 @@ def merge_dengue_weather(
     return merged.sort_values(
         [
             "district",
-            "week_start",
+            "year",
+            "week",
         ]
     ).reset_index(drop=True)

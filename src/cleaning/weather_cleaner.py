@@ -114,6 +114,14 @@ def daily_to_weekly(
         )
     )
 
+    grouped["weather_complete"] = (
+        grouped["weather_days"] == 7
+    )
+
+    grouped["weather_missing_days"] = (
+        7 - grouped["weather_days"]
+    )
+
     grouped["year"] = (
         grouped["week_start"]
         .dt.isocalendar()

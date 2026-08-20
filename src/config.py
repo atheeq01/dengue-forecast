@@ -35,6 +35,10 @@ SILVER_DIR = DATA_DIR / "silver"
 DENGUE_SILVER_PATH = SILVER_DIR / "dengue_weekly.parquet"
 WEATHER_SILVER_PATH = SILVER_DIR / "weather_weekly.parquet"
 COMBINED_SILVER_PATH = SILVER_DIR / "dengue_weather_weekly.parquet"
+MODEL_DATA_PATH = DATA_DIR / "gold" / "dengue_modeling.parquet"
+
+FEATURES_DIR = DATA_DIR / "features"
+FEATURE_DATASET_PATH = FEATURES_DIR / "dengue_forecasting_features.parquet"
 
 GOLD_DIR = DATA_DIR / "gold"
 

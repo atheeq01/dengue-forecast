@@ -15,6 +15,11 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
+import cv2
+import numpy as np
+import pytesseract
+from pdf2image import convert_from_path
+
 from src.config import CANONICAL_RDHS, TABLE_SCHEMAS
 
 
@@ -68,13 +73,36 @@ def pdf_to_text(pdf_path: Path) -> str:
     return result.stdout
 
 
+def pdf_to_text_ocr(pdf_path: Path) -> str:
+    """Extract text from PDF using OCR with OpenCV grid removal as a fallback for corrupt encodings."""
+    images = convert_from_path(pdf_path, dpi=300)
+    text = ""
+    for img in images:
+        gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+        thresh = cv2.adaptiveThreshold(
+            gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 15, -2
+        )
+        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
+        horizontal_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel)
+        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 40))
+        vertical_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, vertical_kernel)
+        table_grid = cv2.addWeighted(horizontal_lines, 0.5, vertical_lines, 0.5, 0.0)
+        _, binary = cv2.threshold(table_grid, 0, 255, cv2.THRESH_BINARY)
+        cleaned_img = cv2.add(gray, binary)
+        text += pytesseract.image_to_string(cleaned_img, config="--psm 6") + "\n"
+    return text
+
+
 def _normalise(value: str) -> str:
     """Normalise only for matching; never use this to alter numeric values."""
     value = value.casefold().replace("–", "-").replace("—", "-")
     # A leading digit joined to text is a common extraction artefact:
     # 0Vavuniya -> Vavuniya.  Digits separated from text remain data values.
     value = re.sub(r"^\d+(?=[a-z])", "", value)
-    return re.sub(r"[^a-z]", "", value)
+    cleaned = re.sub(r"[^a-z]", "", value)
+    if cleaned.startswith("kili"):
+        return "kilinochchi"
+    return cleaned
 
 
 def _label_score(label: str, district: str) -> float:
@@ -200,7 +228,7 @@ def _best_run(candidates: list[CandidateRow]) -> list[CandidateRow]:
     of outlier rows as long as the run remains spatially contiguous and the
     majority of rows agree on the expected column count.
     """
-    MAX_OUTLIERS = 4
+    MAX_OUTLIERS = 10
 
     best: list[CandidateRow] = []
     for start, first in enumerate(candidates):
@@ -367,19 +395,32 @@ def _record_from_values(
 def parse_wer_pdf(pdf_path: Path) -> list[dict[str, Any]]:
     """Parse all recoverable RDHS records in a single WER PDF."""
     text = pdf_to_text(pdf_path)
-    week = extract_report_week(text, pdf_path.name)
     rows = reconstruct_district_rows(text)
+
+    if not rows:
+        try:
+            ocr_text = pdf_to_text_ocr(pdf_path)
+            rows = reconstruct_district_rows(ocr_text)
+            if rows:
+                text = ocr_text
+        except Exception:
+            pass
+
+    week = extract_report_week(text, pdf_path.name)
 
     doc_mode_len = None
     if rows:
         val_lens = [len(v) for v in rows.values()]
         doc_mode_len = max(set(val_lens), key=val_lens.count)
 
-    return [
-        _record_from_values(district, rows[district], week, pdf_path, doc_mode_len)
-        for district in WER_ROW_ORDER
-        if district in rows
-    ]
+    records: list[dict[str, Any]] = []
+    for district in WER_ROW_ORDER:
+        if district in rows:
+            try:
+                records.append(_record_from_values(district, rows[district], week, pdf_path, doc_mode_len))
+            except ValueError:
+                pass
+    return records
 
 
 # Retain the configuration check, but WER_ROW_ORDER remains the parser's table
