@@ -11,3 +11,4 @@ joblib
 pdf2image
 pytesseract
 opencv-python
+mlflow
